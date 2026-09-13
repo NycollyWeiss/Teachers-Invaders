@@ -2,14 +2,8 @@
  * TEACHERS INVADERS - SIMULADOR DE LANÇAMENTO OBLÍQUO (p5.js)
  * 
  * Instruções de Execução:
- * 1. Abra o arquivo 'index.html' em qualquer navegador web moderno.
+ * 1. Abra o arquivo 'index.html' em qualquer navegador web.
  * 2. Certifique-se de que as pastas 'assets' e 'libraries' estejam no mesmo diretório.
- * 
- * Controles da Interface:
- * - Sliders: Ajustam Ângulo (1° a 89°), Velocidade V0 (1 a 100 m/s) e Altura Y0 (0 a 50 m).
- * - Mira/Nave: Arraste a ponta da seta amarela ou a própria nave com o mouse.
- * - Botão LANÇAR: Anima o projétil ao longo da trajetória calculada.
- * - Botão RESETAR: Limpa o histórico de trajetórias e reinicia os alvos.
  */
 
 let imgFundo, imgFundoTerra, imgFundoMarte, imgFundoJupiter;
@@ -23,13 +17,17 @@ let tela = 0; // 0: menu, 1: planetas, 2: profs, 3: jogo
 let planetaSelecionado = 'Terra';
 let professorSelecionado = 'Ettore';
 
+// efeitos Visuais do Menu
+let profsMenu = [];
+let estrelasMenu = [];
+
 // parametros fisicos
 let v0 = 50;
 let angle = 30;
 let y0 = 10;
 let g = 9.81;
 
-// variaveis de calculo
+// variáveis de calculo
 let v0x = 0, v0y = 0;
 let tVoo = 0, yMax = 0, alcance = 0;
 
@@ -44,7 +42,7 @@ let historicoTrajetorias = [];
 let mensagemErro = "";
 let tempoMensagemErro = 0;
 
-// interacao
+// interação
 let arrastandoMira = false;
 let arrastandoNave = false;
 let alertaNaoToque = false;
@@ -90,6 +88,7 @@ function setup() {
   criarControles();
   esconderControles();
   reiniciarAliens();
+  inicializarMenuEfeitos();
 }
 
 function draw() {
@@ -116,7 +115,25 @@ function draw() {
   }
 }
 
-// equacoes analiticas do lancamento obliquo
+function inicializarMenuEfeitos() {
+  estrelasMenu = [];
+  for (let i = 0; i < 28; i++) {
+    estrelasMenu.push({
+      x: random(width),
+      y: random(height),
+      tamanho: random(4, 9),
+      fase: random(TWO_PI),
+      velBrilho: random(0.02, 0.06)
+    });
+  }
+
+  profsMenu = [
+    { img: imgEttore, x: 80, y: 120, vx: 0.6, vy: 0.3, rot: 0, vRot: 0.015, tam: 55 },
+    { img: imgGuilherme, x: 780, y: 500, vx: -0.5, vy: -0.4, rot: 1, vRot: -0.012, tam: 60 },
+    { img: imgThiago, x: 700, y: 140, vx: -0.4, vy: 0.5, rot: 2, vRot: 0.018, tam: 52 }
+  ];
+}
+
 function calcularFisica() {
   if (!emLancamento) {
     v0 = sliderV0.value();
@@ -139,7 +156,6 @@ function calcularFisica() {
 }
 
 function telaJogo() {
-  let alturaAreaJogo = 430;
   if (planetaSelecionado === 'Terra' && imgFundoTerra) {
     image(imgFundoTerra, 0, 0, width, height);
   } else if (planetaSelecionado === 'Marte' && imgFundoMarte) {
@@ -156,29 +172,25 @@ function telaJogo() {
   let origemX = 70;
   let chaoY = 420;
 
-  // drag para alterar altura inicial (limitado a 50m)
   if (arrastandoNave && !emLancamento) {
     let mY = constrain(mouseY, chaoY - (50 * meterToPx), chaoY);
     y0 = round((chaoY - mY) / meterToPx);
     sliderY0.value(y0);
   }
 
-  // eixos do grafico
   stroke(120, 140, 180, 150);
   strokeWeight(2);
   line(origemX, chaoY, width - 20, chaoY);
   line(origemX, 55, origemX, chaoY);
 
-  // rotulos dos eixos com unidades
   noStroke();
   fill(200, 220, 255);
   textSize(8);
   textAlign(RIGHT, CENTER);
-  text("ALTURA Y (m)", origemX + 90, 48);
+  text("ALTURA Y (m)", origemX + 100, 60);
   textAlign(RIGHT, TOP);
   text("DISTÂNCIA X (m)", width - 20, chaoY + 8);
 
-  // trajetorias anteriores
   stroke(255, 255, 255, 60);
   strokeWeight(1.5);
   noFill();
@@ -193,12 +205,11 @@ function telaJogo() {
   desenharVetorMira(origemX, naveY);
 
   imageMode(CENTER);
-  image(imgNave, origemX, naveY, 44, 36);
+  image(imgNave, origemX, naveY, 100, 100);
   imageMode(CORNER);
 
   desenharAliens(meterToPx, origemX, chaoY);
 
-  // animacao do tiro
   if (emLancamento) {
     tempoSimulacao += deltaTime / 1000;
 
@@ -209,13 +220,21 @@ function telaJogo() {
       let posPxX = origemX + xAtual * meterToPx;
       let posPxY = chaoY - yAtual * meterToPx;
 
-      rastroAtual.push({ x: posPxX, y: posPxY });
+      // checagem de saída da tela: 
+      // cancela o tiro se passar da borda direita (width + 20) ou do topo (y < -30)
+      if (posPxX > width + 20 || posPxY < -30) {
+        emLancamento = false;
+        historicoTrajetorias.push([...rastroAtual]);
+        desbloquearControles();
+      } else {
+        rastroAtual.push({ x: posPxX, y: posPxY });
 
-      imageMode(CENTER);
-      let imgTiro = professorSelecionado === 'Ettore' ? imgEttoreTiro :
-                    professorSelecionado === 'Guilherme' ? imgGuilhermeTiro : imgThiagoTiro;
-      image(imgTiro, posPxX, posPxY, 28, 28);
-      imageMode(CORNER);
+        imageMode(CENTER);
+        let imgTiro = professorSelecionado === 'Ettore' ? imgEttoreTiro :
+        professorSelecionado === 'Guilherme' ? imgGuilhermeTiro : imgThiagoTiro;
+        image(imgTiro, posPxX, posPxY, 28, 28);
+        imageMode(CORNER);
+      }
     } else {
       emLancamento = false;
       historicoTrajetorias.push([...rastroAtual]);
@@ -252,25 +271,23 @@ function telaJogo() {
 }
 
 function desenharVetorMira(ox, oy) {
-  let tamSeta = map(v0, 0, 100, 0, 100);
+  let tamSeta = map(v0, 1, 200, 52, 150);
   let rad = radians(angle);
 
   let pontaX = ox + cos(rad) * tamSeta;
   let pontaY = oy - sin(rad) * tamSeta;
 
-  if (tamSeta > 2) {
-    stroke('#FFD700');
-    strokeWeight(3);
-    line(ox, oy, pontaX, pontaY);
+  stroke('#00FFCC');
+  strokeWeight(3);
+  line(ox, oy, pontaX, pontaY);
 
-    push();
-    translate(pontaX, pontaY);
-    rotate(-rad);
-    fill('#FFD700');
-    noStroke();
-    triangle(0, 0, -8, -4, -8, 4);
-    pop();
-  }
+  push();
+  translate(pontaX, pontaY);
+  rotate(-rad);
+  fill('#00FFCC');
+  noStroke();
+  triangle(0, 0, -8, -4, -8, 4);
+  pop();
 
   if (arrastandoMira && !emLancamento) {
     let dx = mouseX - ox;
@@ -286,7 +303,6 @@ function desenharHUD() {
   push();
   noStroke();
 
-  // entradas de dados e decomposicao
   fill('#00FFCC');
   textSize(7);
   textAlign(LEFT, TOP);
@@ -301,7 +317,6 @@ function desenharHUD() {
   text(`ALTURA (Y0): ${y0} m`, col1X, startY + gap * 4);
   text(`VX: ${v0x.toFixed(1)} m/s | VY: ${v0y.toFixed(1)} m/s`, col1X, startY + gap * 5);
 
-  // resultados calculados analiticamente
   fill(0, 255, 180);
   textSize(8);
   textAlign(CENTER, CENTER);
@@ -313,7 +328,6 @@ function desenharHUD() {
   text(`ALTURA MAXIMA : ${yMax.toFixed(1)} m`, greenX, greenYCenter);
   text(`TEMPO DE VOO   : ${tVoo.toFixed(2)} s`, greenX, greenYCenter + greenGap);
 
-  // titulos dos sliders
   fill(220);
   textSize(8);
   textAlign(LEFT, TOP);
@@ -329,7 +343,7 @@ function criarControles() {
   sliderAngle.style('accent-color', '#00FFCC');
   sliderAngle.style('cursor', 'pointer');
 
-  sliderV0 = createSlider(1, 100, 50, 1);
+  sliderV0 = createSlider(1, 200, 50, 1);
   sliderV0.style('width', '100px');
   sliderV0.style('accent-color', '#00FFCC');
   sliderV0.style('cursor', 'pointer');
@@ -480,13 +494,13 @@ function desenharAliens(meterToPx, origemX, chaoY) {
     let px = origemX + a.x * meterToPx;
     let py = chaoY - yFlutuante * meterToPx;
 
-    image(a.img, px, py, 36, 36);
+    image(a.img, px, py, 60, 60);
 
     if (emLancamento) {
       let posPxX = origemX + xAtual * meterToPx;
       let posPxY = chaoY - yAtual * meterToPx;
 
-      if (dist(posPxX, posPxY, px, py) < 24) a.vivo = false;
+      if (dist(posPxX, posPxY, px, py) < 35) a.vivo = false;
     }
   }
   imageMode(CORNER);
@@ -497,13 +511,13 @@ function desenharBotaoVoltar() {
 
   push();
   rectMode(CORNER);
-  stroke(isHover ? '#FFD700' : 180);
+  stroke(isHover ? '#00FFCC' : 180);
   strokeWeight(2);
-  fill(isHover ? color(40, 40, 60, 220) : color(20, 20, 35, 200));
+  fill(isHover ? color(10, 45, 70, 220) : color(20, 20, 35, 200));
   rect(15, 15, 100, 30, 4);
 
   noStroke();
-  fill(isHover ? '#FFD700' : 220);
+  fill(isHover ? '#00FFCC' : 255);
   textSize(8);
   textAlign(CENTER, CENTER);
   text('< VOLTAR', 65, 30);
@@ -513,62 +527,178 @@ function desenharBotaoVoltar() {
   return isHover;
 }
 
+function desenharEstrelasMenu() {
+  push();
+  rectMode(CENTER);
+  noStroke();
+  for (let e of estrelasMenu) {
+    e.fase += e.velBrilho;
+    let α = map(sin(e.fase), -1, 1, 60, 255);
+    fill(255, 255, 255, α);
+
+    let t = e.tamanho * (0.8 + sin(e.fase) * 0.2);
+    rect(e.x, e.y, t, t / 3);
+    rect(e.x, e.y, t / 3, t);
+  }
+  pop();
+}
+
+function desenharEstrelaPixel(x, y, tam, alfa) {
+  push();
+  translate(x, y);
+  fill(255, 255, 255, alfa);
+  noStroke();
+  rectMode(CENTER);
+
+  rect(0, 0, tam * 2.5, tam * 2.5);
+  rect(0, -tam * 2.5, tam * 1.2, tam * 2.5);
+  rect(0, tam * 2.5, tam * 1.2, tam * 2.5);
+  rect(-tam * 2.5, 0, tam * 2.5, tam * 1.2);
+  rect(tam * 2.5, 0, tam * 2.5, tam * 1.2);
+
+  rect(0, -tam * 4.5, tam * 0.8, tam * 1.5);
+  rect(0, tam * 4.5, tam * 0.8, tam * 1.5);
+  rect(-tam * 4.5, 0, tam * 1.5, tam * 0.8);
+  rect(tam * 4.5, 0, tam * 1.5, tam * 0.8);
+  pop();
+}
+
+function desenharEstrelasPixeladas() {
+  let t1 = sin(frameCount * 0.08) * 0.2 + 1;
+  let t2 = cos(frameCount * 0.08) * 0.2 + 1;
+  let a1 = map(sin(frameCount * 0.06), -1, 1, 140, 255);
+  let a2 = map(cos(frameCount * 0.06), -1, 1, 140, 255);
+
+  desenharEstrelaPixel(55, 170, 3.2 * t1, a1);
+  desenharEstrelaPixel(105, 300, 2.3 * t2, a2);
+
+  desenharEstrelaPixel(855, 170, 3.2 * t2, a2);
+  desenharEstrelaPixel(805, 300, 2.3 * t1, a1);
+}
+
+function desenharProfsFlutuantes() {
+  push();
+  imageMode(CENTER);
+  for (let p of profsMenu) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.vRot;
+
+    if (p.x < -60) p.x = width + 60;
+    if (p.x > width + 60) p.x = -60;
+    if (p.y < -60) p.y = height + 60;
+    if (p.y > height + 60) p.y = -60;
+
+    push();
+    translate(p.x, p.y);
+    rotate(p.rot);
+    image(p.img, 0, 0, p.tam, p.tam);
+    pop();
+  }
+  pop();
+}
+
 function telaInicio() {
   image(imgFundo, 0, 0, width, height);
 
-  textAlign(CENTER, CENTER);
-  fill(255);
-  textSize(24);
-  text('TEACHERS INVADERS', width / 2, 180);
+  desenharEstrelasMenu();
+  desenharProfsFlutuantes();
+  desenharEstrelasPixeladas();
 
-  let isHover = mouseX > 350 && mouseX < 550 && mouseY > 295 && mouseY < 345;
+  let esc = 1 + sin(frameCount * 0.04) * 0.03;
+  let yOffset = sin(frameCount * 0.03) * 6;
+
+  push();
+  translate(width / 2, 190 + yOffset);
+  scale(esc);
+  textAlign(CENTER, CENTER);
+
+  fill(0, 229, 255, 90);
+  noStroke();
+  textSize(83);
+  text('TEACHERS', 2, 30);
+  text('INVADERS', 2, 130);
+
+  fill(255);
+  stroke(0, 229, 255);
+  strokeWeight(5);
+  textSize(83);
+  text('TEACHERS', 0, 30);
+  text('INVADERS', 0, 130);
+  pop();
+
+  let btnX = width / 2;
+  let btnY = 480;
+  let btnW = 240;
+  let btnH = 60;
+
+  let isHover = mouseX > btnX - btnW / 2 && mouseX < btnX + btnW / 2 &&
+  mouseY > btnY - btnH / 2 && mouseY < btnY + btnH / 2;
+
   if (isHover) cursor(HAND);
 
-  stroke(isHover ? '#FFD700' : 255);
-  strokeWeight(3);
-  fill(0, 0, 0, 180);
+  push();
   rectMode(CENTER);
-  rect(width / 2, 320, isHover ? 210 : 200, isHover ? 55 : 50, 8);
+
+  if (isHover) {
+    noStroke();
+    fill(0, 229, 255, 80);
+    rect(btnX, btnY, btnW + 14, btnH + 14, 12);
+  }
+
+  stroke(isHover ? '#00FFCC' : '#00E5FF');
+  strokeWeight(3);
+  fill(isHover ? color(10, 45, 70, 230) : color(8, 20, 38, 200));
+  rect(btnX, btnY, isHover ? btnW + 6 : btnW, isHover ? btnH + 4 : btnH, 8);
 
   noStroke();
-  fill(isHover ? '#FFD700' : 255);
-  textSize(14);
-  text('INICIAR', width / 2, 320);
+  fill(isHover ? '#00FFCC' : '#FFFFFF');
+  textSize(16);
+  textAlign(CENTER, CENTER);
+  text('INICIAR', btnX, btnY + 2);
+  pop();
 }
 
 function telaEscolhaPlaneta() {
   image(imgFundo, 0, 0, width, height);
   desenharBotaoVoltar();
 
+  let flutuarTitulo = sin(frameCount * 0.05) * 5;
+
+  push();
   textAlign(CENTER, CENTER);
+  noStroke(); // Adicionado noStroke para remover a borda heradada
   fill(255);
   textSize(20);
-  text('ESCOLHA UM PLANETA', width / 2, 100);
+  text('ESCOLHA UM PLANETA', width / 2, 100 + flutuarTitulo);
+  pop();
 
   let flutuar = sin(frameCount * 0.05) * 6;
   imageMode(CENTER);
 
-  // Marte
+  push();
+  textAlign(CENTER, CENTER);
+  noStroke(); // Garante sem bordas nos nomes dos planetas
+  
   let hMarte = dist(mouseX, mouseY, 220, 310) < 65;
   if (hMarte) cursor(HAND);
   image(imgMarte, 220, 310 + flutuar, hMarte ? 145 : 130, hMarte ? 145 : 130);
-  fill(hMarte ? '#FFD700' : 255);
+  fill(hMarte ? '#00FFCC' : 255);
   textSize(12);
   text('MARTE', 220, 430);
 
-  // Terra
   let hTerra = dist(mouseX, mouseY, 450, 310) < 70;
   if (hTerra) cursor(HAND);
   image(imgTerra, 450, 310 - flutuar, hTerra ? 155 : 140, hTerra ? 155 : 140);
-  fill(hTerra ? '#FFD700' : 255);
+  fill(hTerra ? '#00FFCC' : 255);
   text('TERRA', 450, 430);
 
-  // Jupiter
   let hJupiter = dist(mouseX, mouseY, 680, 310) < 90;
   if (hJupiter) cursor(HAND);
   image(imgJupiter, 680, 310 + flutuar, hJupiter ? 225 : 210, hJupiter ? 165 : 150);
-  fill(hJupiter ? '#FFD700' : 255);
+  fill(hJupiter ? '#00FFCC' : 255);
   text('JÚPITER', 680, 430);
+  pop();
 
   imageMode(CORNER);
 }
@@ -577,35 +707,42 @@ function telaEscolhaProfessor() {
   image(imgFundo, 0, 0, width, height);
   desenharBotaoVoltar();
 
+  let flutuarTitulo = sin(frameCount * 0.05) * 5;
+
+  push();
   textAlign(CENTER, CENTER);
+  noStroke(); // adicionado noStroke para remover bordas herdadas
   fill(255);
   textSize(20);
-  text('ESCOLHA UM PROFESSOR', width / 2, 100);
+  text('ESCOLHA UM PROFESSOR', width / 2, 100 + flutuarTitulo);
+  pop();
 
   let flutuar = sin(frameCount * 0.05) * 5;
   imageMode(CENTER);
 
-  // Ettore
+  push();
+  textAlign(CENTER, CENTER);
+  noStroke(); // nomes dos professores sem bordas
+
   let hEttore = dist(mouseX, mouseY, 220, 310) < 65;
   if (hEttore) cursor(HAND);
   image(imgEttore, 220, 310 + flutuar, hEttore ? 145 : 130, hEttore ? 145 : 130);
-  fill(hEttore ? '#FFD700' : 255);
+  fill(hEttore ? '#00FFCC' : 255);
   textSize(12);
   text('ETTORE', 220, 430);
 
-  // Guilherme
   let hGuilherme = dist(mouseX, mouseY, 450, 310) < 65;
   if (hGuilherme) cursor(HAND);
   image(imgGuilherme, 450, 310 - flutuar, hGuilherme ? 145 : 130, hGuilherme ? 145 : 130);
-  fill(hGuilherme ? '#FFD700' : 255);
+  fill(hGuilherme ? '#00FFCC' : 255);
   text('GUILHERME', 450, 430);
 
-  // Thiago
   let hThiago = dist(mouseX, mouseY, 680, 310) < 65;
   if (hThiago) cursor(HAND);
   image(imgThiago, 680, 310 + flutuar, hThiago ? 145 : 130, hThiago ? 145 : 130);
-  fill(hThiago ? '#FFD700' : 255);
+  fill(hThiago ? '#00FFCC' : 255);
   text('THIAGO', 680, 430);
+  pop();
 
   imageMode(CORNER);
 }
@@ -618,7 +755,7 @@ function mousePressed() {
   }
 
   if (tela === 0) {
-    if (mouseX > 350 && mouseX < 550 && mouseY > 295 && mouseY < 345) tela = 1;
+    if (mouseX > 330 && mouseX < 570 && mouseY > 450 && mouseY < 510) tela = 1;
   } else if (tela === 1) {
     if (dist(mouseX, mouseY, 220, 310) < 65) { planetaSelecionado = 'Marte'; tela = 2; }
     else if (dist(mouseX, mouseY, 450, 310) < 70) { planetaSelecionado = 'Terra'; tela = 2; }
@@ -632,13 +769,13 @@ function mousePressed() {
     let meterToPx = 1.6;
     let ox = 70;
     let oy = 420 - (y0 * meterToPx);
-    let tamSeta = map(v0, 0, 100, 0, 100);
+    let tamSeta = map(v0, 1, 200, 52, 150);
     let rad = radians(angle);
     let px = ox + cos(rad) * tamSeta;
     let py = oy - sin(rad) * tamSeta;
 
     if (dist(mouseX, mouseY, px, py) < 25) arrastandoMira = true;
-    else if (dist(mouseX, mouseY, ox, oy) < 30) arrastandoNave = true;
+    else if (dist(mouseX, mouseY, ox, oy) < 50) arrastandoNave = true;
   }
 }
 
