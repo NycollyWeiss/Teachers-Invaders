@@ -2,9 +2,11 @@
  
 /*
   Instruções de Execução:
-  .
-  .
-  .
+ * O projeto pode ser executado por meio da IDE Visual Studio.
+ *  1- Copie o código do repositório e o cole na IDE para cloná-lo;
+ *  2 - Vá em "Extentions" no menu lateral, busque por "Live Server" e instale a extensão;
+ *  3 - Clique com o botão direito no arquivo index.html e selecione "Open with Live Server";
+ *  4 - Vá para a aba que foi aberta em seu navegador e aproveite o Teachers Invaders!
  */
 
 let imgFundo, imgFundoTerra, imgFundoMarte, imgFundoJupiter;
@@ -349,9 +351,9 @@ function desenharHUD() {
   fill(220);
   textSize(8);
   textAlign(LEFT, TOP);
-  text("ÂNGULO", 635, 480);
-  text("VELOCIDADE", 635, 540);
- text("ALTURA", 765, 490);
+  text("ÂNGULO", 635, 500);
+  text("VELOCIDADE", 635, 560);
+ text("ALTURA", 765, 500);
   pop();
 }
 
@@ -409,13 +411,13 @@ function posicionarControles() {
   let cx = canvas.position().x;
   let cy = canvas.position().y;
 
-  btnLancar.position(cx + 42, cy + 540);
-  btnReset.position(cx + 140, cy + 540);
+  btnLancar.position(cx + 42, cy + 610);
+  btnReset.position(cx + 140, cy + 610);
 
-  sliderAngle.position(cx + 635, cy + 452);
-  sliderV0.position(cx + 635, cy + 506);
-  sliderY0.position(cx + 742, cy + 488);
-  btnNaoToque.position(cx + 810, cy + 450);
+  sliderAngle.position(cx + 635, cy + 520);
+  sliderV0.position(cx + 635, cy + 580);
+  sliderY0.position(cx + 742, cy + 560);
+  btnNaoToque.position(cx + 810, cy + 510);
 }
 
 function bloquearControles() {
