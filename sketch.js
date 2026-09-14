@@ -1,26 +1,26 @@
+// Projeto Teachers Invaders - Simulador p5.js
+ 
 /*
- * TEACHERS INVADERS - SIMULADOR DE LANÇAMENTO OBLÍQUO (p5.js)
- * 
- * Instruções de Execução:
- * O projeto pode ser executado por meio da IDE Visual Studio. 
- *  1- Copie o código do repositório e o cole na IDE para cloná-lo;
- *  2 - Vá em "Extentions" no menu lateral, busque por "Live Server" e instale a extensão;
- *  3 - Clique com o botão direito no arquivo index.html e selecione "Open with Live Server";
- *  4 - Vá para a aba que foi aberta em seu navegador e aproveite o Teachers Invaders!
+  Instruções de Execução:
+  .
+  .
+  .
  */
 
 let imgFundo, imgFundoTerra, imgFundoMarte, imgFundoJupiter;
 let imgTerra, imgMarte, imgJupiter;
 let imgEttore, imgGuilherme, imgThiago;
 let imgEttoreTiro, imgGuilhermeTiro, imgThiagoTiro;
-let imgBill, imgBoludo, imgPendejo, imgPrin, imgPainel, imgNave;
+let imgBill, imgBoludo, imgPendejo, imgPrin, imgPainel, imgNave, imgBtnNaoToque;
+
+let audioFunkyTown, audioPew, audioPancada;
 
 let canvas;
 let tela = 0; // 0: menu, 1: planetas, 2: profs, 3: jogo
 let planetaSelecionado = 'Terra';
 let professorSelecionado = 'Ettore';
 
-// efeitos Visuais do Menu
+// efeitos visuais do menu
 let profsMenu = [];
 let estrelasMenu = [];
 
@@ -85,6 +85,11 @@ function preload() {
   imgPrin = loadImage('assets/Prin.png');
   imgPainel = loadImage('assets/Painel_Finalizado.png');
   imgNave = loadImage('assets/Nave_Pow_Phiew.png');
+  imgBtnNaoToque = loadImage('assets/Botao_Nao_Toque.png');
+
+  audioFunkyTown = loadSound('assets/funkytown.mp3');
+  audioPew = loadSound('assets/pew.mp3');
+  audioPancada = loadSound('assets/pancada.mp3');
 }
 
 function setup() {
@@ -153,13 +158,9 @@ function calcularFisica() {
   else if (planetaSelecionado === 'Júpiter') g = 24.79;
   else g = 9.81;
 
-// Decomposição da velocidade inicial v0 em direções x (v0x) e y (v0y)
-
   let rad = radians(angle);
   v0x = v0 * cos(rad);
   v0y = v0 * sin(rad);
-
-//Cálculo do tempo de voo (tVoo), altura máxima (yMax) e alcance horizontal (alcance)
 
   let delta = sq(v0y) + 2 * g * y0;
   tVoo = delta >= 0 ? (v0y + sqrt(delta)) / g : 0;
@@ -185,7 +186,7 @@ function telaJogo() {
   let chaoY = 420;
 
   if (arrastandoNave && !emLancamento) {
-    let mY = constrain(mouseY, chaoY - (50 * meterToPx), chaoY);
+    let mY = constrain(mouseY, chaoY - (200 * meterToPx), chaoY);
     y0 = round((chaoY - mY) / meterToPx);
     sliderY0.value(y0);
   }
@@ -223,8 +224,8 @@ function telaJogo() {
   desenharAliens(meterToPx, origemX, chaoY);
 
   if (emLancamento) {
-    tempoSimulacao += deltaTime / 1000;  //tempoSimulacao corresponde ao tempo passado desde o início do lançamento
-                                        //deltatime é o tempo em milissegundos desde o último frame, então dividimos por 1000 para converter para segundos.
+    tempoSimulacao += deltaTime / 1000;
+
     if (tempoSimulacao <= tVoo) {
       xAtual = v0x * tempoSimulacao;
       yAtual = y0 + v0y * tempoSimulacao - 0.5 * g * sq(tempoSimulacao);
@@ -279,7 +280,11 @@ function telaJogo() {
     text('ALERTA: SOBRECARGA NO SISTEMA!', width / 2, 60);
     pop();
 
-    if (millis() - tempoAlerta > 3500) alertaNaoToque = false;
+    if (millis() - tempoAlerta > 3500) {
+      alertaNaoToque = false;
+      if (audioFunkyTown && audioFunkyTown.isPlaying()) {
+      }
+    }
   }
 }
 
@@ -341,12 +346,12 @@ function desenharHUD() {
   text(`ALTURA MAXIMA : ${yMax.toFixed(1)} m`, greenX, greenYCenter);
   text(`TEMPO DE VOO   : ${tVoo.toFixed(2)} s`, greenX, greenYCenter + greenGap);
 
-  fill('#dbdacc');
+  fill(220);
   textSize(8);
   textAlign(LEFT, TOP);
   text("ÂNGULO", 635, 480);
   text("VELOCIDADE", 635, 540);
-  text("ALTURA", 765, 550);
+ text("ALTURA", 765, 490);
   pop();
 }
 
@@ -376,6 +381,7 @@ function criarControles() {
   btnLancar.style('border', '2px solid white');
   btnLancar.style('border-radius', '4px');
   btnLancar.style('cursor', 'pointer');
+  btnLancar.style('z-index', '10');
   btnLancar.mousePressed(iniciarLancamento);
 
   btnReset = createButton('RESETAR');
@@ -387,13 +393,15 @@ function criarControles() {
   btnReset.style('border', '2px solid white');
   btnReset.style('border-radius', '4px');
   btnReset.style('cursor', 'pointer');
+  btnReset.style('z-index', '10');
   btnReset.mousePressed(resetarSimulacao);
 
-  btnNaoToque = createButton('');
-  btnNaoToque.size(60, 60);
-  btnNaoToque.style('background', 'transparent');
+  btnNaoToque = createImg('assets/Botao_Nao_Toque.png', 'NÃO TOQUE');
+  btnNaoToque.size(80, 80);
   btnNaoToque.style('border', 'none');
+  btnNaoToque.style('background', 'transparent');
   btnNaoToque.style('cursor', 'pointer');
+  btnNaoToque.style('z-index', '10');
   btnNaoToque.mousePressed(ativarNaoToque);
 }
 
@@ -401,13 +409,13 @@ function posicionarControles() {
   let cx = canvas.position().x;
   let cy = canvas.position().y;
 
-  btnLancar.position(cx + 42, cy + 605);
-  btnReset.position(cx + 140, cy + 605);
+  btnLancar.position(cx + 42, cy + 540);
+  btnReset.position(cx + 140, cy + 540);
 
   sliderAngle.position(cx + 635, cy + 452);
   sliderV0.position(cx + 635, cy + 506);
   sliderY0.position(cx + 742, cy + 488);
-  btnNaoToque.position(cx + 735, cy + 550);
+  btnNaoToque.position(cx + 810, cy + 450);
 }
 
 function bloquearControles() {
@@ -467,6 +475,10 @@ function iniciarLancamento() {
     return;
   }
 
+  if (audioPew) {
+    audioPew.play();
+  }
+
   emLancamento = true;
   tempoSimulacao = 0;
   rastroAtual = [];
@@ -485,11 +497,19 @@ function resetarSimulacao() {
 function ativarNaoToque() {
   alertaNaoToque = true;
   tempoAlerta = millis();
+
+  if (audioFunkyTown && audioFunkyTown.isLoaded()) {
+    if (!audioFunkyTown.isPlaying()) {
+      audioFunkyTown.play(); // Ou audioFunkyTown.loop(); se quiser que repita caso acabe
+    }
+  }
 }
 
 function reiniciarAliens() {
   vitoriaAlcancada = false;
-  vitoriaJaDisparada = false; 
+  vitoriaJaDisparada = false;
+  tempoVitoria = 0;
+
   aliens = [
     { img: imgBill, x: 160, baseY: 90, fase: 0, vivo: true },
     { img: imgBoludo, x: 230, baseY: 150, fase: 1.2, vivo: true },
@@ -515,7 +535,12 @@ function desenharAliens(meterToPx, origemX, chaoY) {
       let posPxX = origemX + xAtual * meterToPx;
       let posPxY = chaoY - yAtual * meterToPx;
 
-      if (dist(posPxX, posPxY, px, py) < 35) a.vivo = false;
+      if (dist(posPxX, posPxY, px, py) < 35) {
+        a.vivo = false;
+        if (audioPancada) {
+          audioPancada.play();
+        }
+      }
     }
   }
   imageMode(CORNER);
@@ -709,7 +734,7 @@ function telaEscolhaPlaneta() {
 
   push();
   textAlign(CENTER, CENTER);
-  noStroke(); // Adicionado noStroke para remover a borda heradada
+  noStroke(); // adicionado noStroke para remover bordas herdadas
   fill(255);
   textSize(20);
   text('ESCOLHA UM PLANETA', width / 2, 100 + flutuarTitulo);
@@ -720,7 +745,7 @@ function telaEscolhaPlaneta() {
 
   push();
   textAlign(CENTER, CENTER);
-  noStroke(); // Garante sem bordas nos nomes dos planetas
+  noStroke(); // sem bordas nos nomes dos planetas
   
   let hMarte = dist(mouseX, mouseY, 220, 310) < 65;
   if (hMarte) cursor(HAND);
