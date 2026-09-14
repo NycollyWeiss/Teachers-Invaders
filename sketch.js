@@ -1,23 +1,26 @@
+// Projeto Teachers Invaders - Simulador p5.js
+ 
 /*
- * TEACHERS INVADERS - SIMULADOR DE LANÇAMENTO OBLÍQUO (p5.js)
- * 
- * Instruções de Execução:
- * 1. Abra o arquivo 'index.html' em qualquer navegador web.
- * 2. Certifique-se de que as pastas 'assets' e 'libraries' estejam no mesmo diretório.
+  Instruções de Execução:
+  .
+  .
+  .
  */
 
 let imgFundo, imgFundoTerra, imgFundoMarte, imgFundoJupiter;
 let imgTerra, imgMarte, imgJupiter;
 let imgEttore, imgGuilherme, imgThiago;
 let imgEttoreTiro, imgGuilhermeTiro, imgThiagoTiro;
-let imgBill, imgBoludo, imgPendejo, imgPrin, imgPainel, imgNave;
+let imgBill, imgBoludo, imgPendejo, imgPrin, imgPainel, imgNave, imgBtnNaoToque;
+
+let audioFunkyTown, audioPew, audioPancada;
 
 let canvas;
 let tela = 0; // 0: menu, 1: planetas, 2: profs, 3: jogo
 let planetaSelecionado = 'Terra';
 let professorSelecionado = 'Ettore';
 
-// efeitos Visuais do Menu
+// efeitos visuais do menu
 let profsMenu = [];
 let estrelasMenu = [];
 
@@ -77,6 +80,11 @@ function preload() {
   imgPrin = loadImage('assets/Prin.png');
   imgPainel = loadImage('assets/Painel_Finalizado.png');
   imgNave = loadImage('assets/Nave_Pow_Phiew.png');
+  imgBtnNaoToque = loadImage('assets/Botao_Nao_Toque.png');
+
+  audioFunkyTown = loadSound('assets/funkytown.mp3');
+  audioPew = loadSound('assets/pew.mp3');
+  audioPancada = loadSound('assets/pancada.mp3');
 }
 
 function setup() {
@@ -266,7 +274,11 @@ function telaJogo() {
     text('ALERTA: SOBRECARGA NO SISTEMA!', width / 2, 60);
     pop();
 
-    if (millis() - tempoAlerta > 3500) alertaNaoToque = false;
+    if (millis() - tempoAlerta > 3500) {
+      alertaNaoToque = false;
+      if (audioFunkyTown && audioFunkyTown.isPlaying()) {
+      }
+    }
   }
 }
 
@@ -376,10 +388,10 @@ function criarControles() {
   btnReset.style('cursor', 'pointer');
   btnReset.mousePressed(resetarSimulacao);
 
-  btnNaoToque = createButton('');
-  btnNaoToque.size(60, 60);
-  btnNaoToque.style('background', 'transparent');
+  btnNaoToque = createImg('assets/Botao_Nao_Toque.png', 'NÃO TOQUE');
+  btnNaoToque.size(80, 80);
   btnNaoToque.style('border', 'none');
+  btnNaoToque.style('background', 'transparent');
   btnNaoToque.style('cursor', 'pointer');
   btnNaoToque.mousePressed(ativarNaoToque);
 }
@@ -394,7 +406,7 @@ function posicionarControles() {
   sliderAngle.position(cx + 635, cy + 452);
   sliderV0.position(cx + 635, cy + 506);
   sliderY0.position(cx + 742, cy + 488);
-  btnNaoToque.position(cx + 735, cy + 550);
+  btnNaoToque.position(cx + 665, cy + 525);
 }
 
 function bloquearControles() {
@@ -454,6 +466,10 @@ function iniciarLancamento() {
     return;
   }
 
+  if (audioPew) {
+    audioPew.play();
+  }
+
   emLancamento = true;
   tempoSimulacao = 0;
   rastroAtual = [];
@@ -472,6 +488,12 @@ function resetarSimulacao() {
 function ativarNaoToque() {
   alertaNaoToque = true;
   tempoAlerta = millis();
+
+  if (audioFunkyTown && audioFunkyTown.isLoaded()) {
+    if (!audioFunkyTown.isPlaying()) {
+      audioFunkyTown.play(); // Ou audioFunkyTown.loop(); se quiser que repita caso acabe
+    }
+  }
 }
 
 function reiniciarAliens() {
@@ -500,7 +522,12 @@ function desenharAliens(meterToPx, origemX, chaoY) {
       let posPxX = origemX + xAtual * meterToPx;
       let posPxY = chaoY - yAtual * meterToPx;
 
-      if (dist(posPxX, posPxY, px, py) < 35) a.vivo = false;
+      if (dist(posPxX, posPxY, px, py) < 35) {
+        a.vivo = false;
+        if (audioPancada) {
+          audioPancada.play();
+        }
+      }
     }
   }
   imageMode(CORNER);
