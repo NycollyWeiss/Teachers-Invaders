@@ -694,7 +694,7 @@ function telaEscolhaPlaneta() {
 
   push();
   textAlign(CENTER, CENTER);
-  noStroke(); // Adicionado noStroke para remover a borda heradada
+  noStroke(); // adicionado noStroke para remover bordas herdadas
   fill(255);
   textSize(20);
   text('ESCOLHA UM PLANETA', width / 2, 100 + flutuarTitulo);
@@ -705,7 +705,7 @@ function telaEscolhaPlaneta() {
 
   push();
   textAlign(CENTER, CENTER);
-  noStroke(); // Garante sem bordas nos nomes dos planetas
+  noStroke(); // sem bordas nos nomes dos planetas
   
   let hMarte = dist(mouseX, mouseY, 220, 310) < 65;
   if (hMarte) cursor(HAND);
